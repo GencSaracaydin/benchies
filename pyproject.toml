@@ -27,3 +27,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/benchies"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
