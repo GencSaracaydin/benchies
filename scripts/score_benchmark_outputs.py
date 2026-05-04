@@ -129,6 +129,7 @@ def load_image_reward_model(enabled: bool):
     """Load ImageReward only when explicitly requested."""
     if not enabled:
         return None
+    patch_transformers_for_image_reward()
     try:
         import ImageReward as RM
     except ModuleNotFoundError as error:
@@ -147,6 +148,18 @@ def load_image_reward_model(enabled: bool):
             "Run `uv lock && uv sync` after pulling the latest branch."
         ) from error
     return RM.load("ImageReward-v1.0")
+
+
+def patch_transformers_for_image_reward() -> None:
+    """Patch old Transformers symbols expected by ImageReward's BLIP code."""
+    try:
+        import transformers.modeling_utils as modeling_utils
+        from transformers.pytorch_utils import apply_chunking_to_forward
+    except ImportError:
+        return
+
+    if not hasattr(modeling_utils, "apply_chunking_to_forward"):
+        modeling_utils.apply_chunking_to_forward = apply_chunking_to_forward
 
 
 def score_image_reward_rows(
