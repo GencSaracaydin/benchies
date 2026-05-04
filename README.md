@@ -41,6 +41,144 @@ The package exposes a small CLI:
 uv run benchies --about
 ```
 
+## Research prompt set
+
+The benchmark prompt registry is stored in `src/benchies/prompts.py`.
+
+Current sets:
+
+- `primary`: 60 prompts across simple objects, two-object composition, spatial
+  relationships, counting, complex scenes, artistic styles, photorealism, text
+  rendering, and negation.
+- `curated`: recommended 50-prompt subset for balanced step-count comparisons.
+- `control`: 4 edge-case prompts for long-prompt and abstract stress testing.
+- `all`: primary plus control prompts.
+
+Inspect category counts:
+
+```bash
+uv run benchies --list-prompt-categories
+```
+
+Export prompts:
+
+```bash
+uv run benchies --export-prompts outputs/curated_prompts.csv --prompt-set curated
+uv run benchies --export-prompts outputs/primary_prompts.json --prompt-set primary
+```
+
+Build an empty metric matrix for the recommended experiment:
+
+```bash
+uv run python scripts/build_benchmark_matrix.py \
+  --prompt-set curated \
+  --steps 1,2,4 \
+  --runs 5 \
+  --output outputs/benchmark_matrix.csv
+```
+
+The metric schema is stored in `src/benchies/metrics.py` and includes latency,
+quality, resource, and metadata fields:
+
+- `clip_score`
+- `aesthetic_score`
+- `load_time_ms`, `generation_time_ms`, `total_time_ms`
+- `gpu_memory_mb`, `peak_memory_mb`
+- `seed`, `guidance_scale`, `resolution`, `model_id`, `device`, `dtype`
+
+## Lambda benchmark run commands
+
+Run these from the repo root on the Lambda VM.
+
+Install/sync the environment:
+
+```bash
+uv sync
+```
+
+Confirm the prompt registry:
+
+```bash
+uv run benchies --list-prompt-categories
+```
+
+Single prompt smoke test. This runs the first curated prompt only, at 4 steps:
+
+```bash
+uv run python scripts/run_flux_benchmark.py \
+  --prompt-set curated \
+  --limit 1 \
+  --steps 4 \
+  --runs 1 \
+  --output-dir outputs/smoke/images \
+  --metrics-output outputs/smoke/metrics.csv
+```
+
+One prompt from each primary category. This is the best first real GPU sanity
+check because it covers the full category spread without running all 60
+prompts:
+
+```bash
+uv run python scripts/run_flux_benchmark.py \
+  --prompt-set primary \
+  --one-per-category \
+  --steps 1,2,4 \
+  --runs 1 \
+  --output-dir outputs/one_per_category/images \
+  --metrics-output outputs/one_per_category/metrics.csv
+```
+
+Run one category only:
+
+```bash
+uv run python scripts/run_flux_benchmark.py \
+  --prompt-set primary \
+  --category spatial_relationships \
+  --steps 1,2,4 \
+  --runs 3 \
+  --output-dir outputs/spatial_relationships/images \
+  --metrics-output outputs/spatial_relationships/metrics.csv
+```
+
+Run the recommended curated benchmark. This is `50 prompts x 3 step counts x 5
+runs = 750` generations:
+
+```bash
+uv run python scripts/run_flux_benchmark.py \
+  --prompt-set curated \
+  --steps 1,2,4 \
+  --runs 5 \
+  --output-dir outputs/curated_full/images \
+  --metrics-output outputs/curated_full/metrics.csv
+```
+
+Run all 60 primary prompts:
+
+```bash
+uv run python scripts/run_flux_benchmark.py \
+  --prompt-set primary \
+  --steps 1,2,4 \
+  --runs 5 \
+  --output-dir outputs/primary_full/images \
+  --metrics-output outputs/primary_full/metrics.csv
+```
+
+Run the 4 control prompts:
+
+```bash
+uv run python scripts/run_flux_benchmark.py \
+  --prompt-set control \
+  --steps 1,2,4 \
+  --runs 3 \
+  --output-dir outputs/control/images \
+  --metrics-output outputs/control/metrics.csv
+```
+
+The runner currently records generation latency, CUDA memory when available,
+image paths, seed, model, dtype, device, and resolution. `clip_score` and
+`aesthetic_score` are present in the metric schema but remain empty until the
+scoring pass is added.
+
 ## Minimal FLUX Schnell run
 
 The first real inference path is a single script that loads FLUX Schnell and
