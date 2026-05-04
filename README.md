@@ -190,9 +190,12 @@ uv run python scripts/score_benchmark_outputs.py \
 ```
 
 ImageReward is a project dependency. If you add it on a branch or pull a commit
-that changes dependencies, sync the VM environment first:
+that changes dependencies, refresh the lockfile and sync the VM environment
+first. ImageReward imports OpenAI CLIP at module load, so both dependencies must
+be present in the uv environment:
 
 ```bash
+uv lock
 uv sync
 ```
 

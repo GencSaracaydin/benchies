@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "accelerate>=1.9.0",
+    "clip @ git+https://github.com/openai/CLIP.git",
     "diffusers>=0.35.0",
     "huggingface-hub>=0.34.0",
     "image-reward>=1.5",

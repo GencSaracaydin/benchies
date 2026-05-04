@@ -131,10 +131,20 @@ def load_image_reward_model(enabled: bool):
         return None
     try:
         import ImageReward as RM
+    except ModuleNotFoundError as error:
+        if error.name == "ImageReward":
+            raise SystemExit(
+                "ImageReward scoring requires the image-reward package. "
+                "Run `uv sync` after pulling the branch, then retry."
+            ) from error
+        raise SystemExit(
+            f"ImageReward is installed, but one of its import-time dependencies is missing: "
+            f"{error.name}. Run `uv lock && uv sync` after pulling the latest branch."
+        ) from error
     except ImportError as error:
         raise SystemExit(
-            "ImageReward scoring requires the optional image-reward package. "
-            "Install it on the VM with `uv pip install image-reward`."
+            f"ImageReward failed to import because of a dependency conflict: {error}. "
+            "Run `uv lock && uv sync` after pulling the latest branch."
         ) from error
     return RM.load("ImageReward-v1.0")
 
