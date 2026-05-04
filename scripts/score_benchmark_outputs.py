@@ -154,6 +154,7 @@ def patch_transformers_for_image_reward() -> None:
     """Patch old Transformers symbols expected by ImageReward's BLIP code."""
     try:
         import transformers.modeling_utils as modeling_utils
+        from transformers.tokenization_utils_base import PreTrainedTokenizerBase
     except ImportError:
         return
 
@@ -181,6 +182,16 @@ def patch_transformers_for_image_reward() -> None:
     for name, value in moved_symbols.items():
         if not hasattr(modeling_utils, name):
             setattr(modeling_utils, name, value)
+
+    if not hasattr(PreTrainedTokenizerBase, "additional_special_tokens_ids"):
+        PreTrainedTokenizerBase.additional_special_tokens_ids = property(
+            get_additional_special_tokens_ids
+        )
+
+
+def get_additional_special_tokens_ids(tokenizer) -> list[int]:
+    """Compatibility property for ImageReward's legacy BLIP tokenizer setup."""
+    return tokenizer.convert_tokens_to_ids(tokenizer.additional_special_tokens)
 
 
 def local_find_pruneable_heads_and_indices(
