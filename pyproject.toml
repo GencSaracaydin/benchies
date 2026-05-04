@@ -8,6 +8,7 @@ dependencies = [
     "accelerate>=1.9.0",
     "diffusers>=0.35.0",
     "huggingface-hub>=0.34.0",
+    "image-reward>=1.5",
     "pillow>=11.3.0",
     "safetensors>=0.5.3",
     "sentencepiece>=0.2.0",

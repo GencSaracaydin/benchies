@@ -189,10 +189,11 @@ uv run python scripts/score_benchmark_outputs.py \
   --batch-size 16
 ```
 
-Install optional ImageReward support on the Lambda VM:
+ImageReward is a project dependency. If you add it on a branch or pull a commit
+that changes dependencies, sync the VM environment first:
 
 ```bash
-uv pip install image-reward
+uv sync
 ```
 
 Score generated outputs with CLIP plus ImageReward:
