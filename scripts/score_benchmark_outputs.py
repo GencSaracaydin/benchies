@@ -125,6 +125,17 @@ def load_aesthetic_predictor(weights_path: Path | None, device) -> AestheticPred
     return predictor
 
 
+def extract_feature_tensor(model_output):
+    """Normalize Transformers outputs that may be tensors or model-output objects."""
+    if hasattr(model_output, "image_embeds"):
+        return model_output.image_embeds
+    if hasattr(model_output, "text_embeds"):
+        return model_output.text_embeds
+    if hasattr(model_output, "pooler_output"):
+        return model_output.pooler_output
+    return model_output
+
+
 def load_image_reward_model(enabled: bool):
     """Load ImageReward only when explicitly requested."""
     if not enabled:
@@ -279,6 +290,8 @@ def score_rows(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
             )
+            image_features = extract_feature_tensor(image_features)
+            text_features = extract_feature_tensor(text_features)
             image_features = F.normalize(image_features, dim=-1)
             text_features = F.normalize(text_features, dim=-1)
             clip_scores = (image_features * text_features).sum(dim=-1)
