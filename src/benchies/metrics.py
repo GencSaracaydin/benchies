@@ -20,6 +20,7 @@ class BenchmarkMetrics:
     total_time_ms: float | None = None
     clip_score: float | None = None
     aesthetic_score: float | None = None
+    image_reward_score: float | None = None
     gpu_memory_mb: float | None = None
     peak_memory_mb: float | None = None
     seed: int | None = None

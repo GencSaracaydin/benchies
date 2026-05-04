@@ -82,6 +82,7 @@ quality, resource, and metadata fields:
 
 - `clip_score`
 - `aesthetic_score`
+- `image_reward_score`
 - `load_time_ms`, `generation_time_ms`, `total_time_ms`
 - `gpu_memory_mb`, `peak_memory_mb`
 - `seed`, `guidance_scale`, `resolution`, `model_id`, `device`, `dtype`
@@ -175,9 +176,51 @@ uv run python scripts/run_flux_benchmark.py \
 ```
 
 The runner currently records generation latency, CUDA memory when available,
-image paths, seed, model, dtype, device, and resolution. `clip_score` and
-`aesthetic_score` are present in the metric schema but remain empty until the
-scoring pass is added.
+image paths, seed, model, dtype, device, and resolution. Run the separate
+scoring pass below to populate `clip_score` and, when weights are available,
+`aesthetic_score` and `image_reward_score`.
+
+Score generated outputs with CLIP:
+
+```bash
+uv run python scripts/score_benchmark_outputs.py \
+  --metrics-input outputs/one_per_category/metrics.csv \
+  --metrics-output outputs/one_per_category/metrics_scored.csv \
+  --batch-size 16
+```
+
+Install optional ImageReward support on the Lambda VM:
+
+```bash
+uv pip install image-reward
+```
+
+Score generated outputs with CLIP plus ImageReward:
+
+```bash
+uv run python scripts/score_benchmark_outputs.py \
+  --metrics-input outputs/one_per_category/metrics.csv \
+  --metrics-output outputs/one_per_category/metrics_scored.csv \
+  --enable-imagereward \
+  --batch-size 16
+```
+
+Score generated outputs with CLIP plus a local aesthetic predictor checkpoint:
+
+```bash
+uv run python scripts/score_benchmark_outputs.py \
+  --metrics-input outputs/curated_full/metrics.csv \
+  --metrics-output outputs/curated_full/metrics_scored.csv \
+  --aesthetic-weights models/aesthetic_predictor.pth \
+  --batch-size 16
+```
+
+The scoring script uses `openai/clip-vit-large-patch14` by default and writes
+cosine-similarity CLIP scores into the `clip_score` column. Aesthetic scoring
+requires a local LAION-style CLIP aesthetic predictor checkpoint passed through
+`--aesthetic-weights`; otherwise `aesthetic_score` is left empty. ImageReward
+scoring requires the optional `image-reward` package and `--enable-imagereward`;
+otherwise `image_reward_score` is left empty.
 
 ## Minimal FLUX Schnell run
 
