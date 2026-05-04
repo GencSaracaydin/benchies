@@ -98,8 +98,8 @@ def safe_name(value: str) -> str:
 
 def build_image_path(output_dir: Path, prompt_case: PromptCase, steps: int, run: int, seed: int) -> Path:
     """Create a deterministic image path from benchmark dimensions."""
-    filename = f"{prompt_case.prompt_id}_steps-{steps}_run-{run}_seed-{seed}.png"
-    return output_dir / prompt_case.category / safe_name(filename)
+    image_stem = f"{prompt_case.prompt_id}_steps-{steps}_run-{run}_seed-{seed}"
+    return output_dir / prompt_case.category / f"{safe_name(image_stem)}.png"
 
 
 def write_metrics(metrics: list[BenchmarkMetrics], output_path: Path) -> Path:
