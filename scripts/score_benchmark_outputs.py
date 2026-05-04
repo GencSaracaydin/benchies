@@ -154,22 +154,52 @@ def patch_transformers_for_image_reward() -> None:
     """Patch old Transformers symbols expected by ImageReward's BLIP code."""
     try:
         import transformers.modeling_utils as modeling_utils
-        from transformers.pytorch_utils import (
-            apply_chunking_to_forward,
-            find_pruneable_heads_and_indices,
-            prune_linear_layer,
-        )
     except ImportError:
         return
 
-    moved_symbols = {
-        "apply_chunking_to_forward": apply_chunking_to_forward,
-        "find_pruneable_heads_and_indices": find_pruneable_heads_and_indices,
-        "prune_linear_layer": prune_linear_layer,
-    }
+    moved_symbols = {}
+    try:
+        from transformers.pytorch_utils import apply_chunking_to_forward
+
+        moved_symbols["apply_chunking_to_forward"] = apply_chunking_to_forward
+    except ImportError:
+        pass
+
+    try:
+        from transformers.pytorch_utils import prune_linear_layer
+
+        moved_symbols["prune_linear_layer"] = prune_linear_layer
+    except ImportError:
+        pass
+
+    try:
+        from transformers.pytorch_utils import find_pruneable_heads_and_indices
+    except ImportError:
+        find_pruneable_heads_and_indices = local_find_pruneable_heads_and_indices
+    moved_symbols["find_pruneable_heads_and_indices"] = find_pruneable_heads_and_indices
+
     for name, value in moved_symbols.items():
         if not hasattr(modeling_utils, name):
             setattr(modeling_utils, name, value)
+
+
+def local_find_pruneable_heads_and_indices(
+    heads: list[int],
+    n_heads: int,
+    head_size: int,
+    already_pruned_heads: set[int],
+):
+    """Compatibility fallback copied from Transformers' legacy pruning helper."""
+    import torch
+
+    mask = torch.ones(n_heads, head_size)
+    heads = set(heads) - already_pruned_heads
+    for head in heads:
+        head = head - sum(1 if pruned_head < head else 0 for pruned_head in already_pruned_heads)
+        mask[head] = 0
+    mask = mask.view(-1).contiguous().eq(1)
+    index = torch.arange(len(mask))[mask].long()
+    return heads, index
 
 
 def score_image_reward_rows(
