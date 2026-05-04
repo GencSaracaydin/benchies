@@ -154,12 +154,22 @@ def patch_transformers_for_image_reward() -> None:
     """Patch old Transformers symbols expected by ImageReward's BLIP code."""
     try:
         import transformers.modeling_utils as modeling_utils
-        from transformers.pytorch_utils import apply_chunking_to_forward
+        from transformers.pytorch_utils import (
+            apply_chunking_to_forward,
+            find_pruneable_heads_and_indices,
+            prune_linear_layer,
+        )
     except ImportError:
         return
 
-    if not hasattr(modeling_utils, "apply_chunking_to_forward"):
-        modeling_utils.apply_chunking_to_forward = apply_chunking_to_forward
+    moved_symbols = {
+        "apply_chunking_to_forward": apply_chunking_to_forward,
+        "find_pruneable_heads_and_indices": find_pruneable_heads_and_indices,
+        "prune_linear_layer": prune_linear_layer,
+    }
+    for name, value in moved_symbols.items():
+        if not hasattr(modeling_utils, name):
+            setattr(modeling_utils, name, value)
 
 
 def score_image_reward_rows(
