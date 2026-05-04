@@ -29,6 +29,7 @@ class BenchmarkMetrics:
     model_id: str | None = None
     device: str | None = None
     dtype: str | None = None
+    memory_mode: str | None = None
     image_path: str | None = None
 
 

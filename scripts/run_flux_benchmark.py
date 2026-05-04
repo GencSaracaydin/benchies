@@ -16,6 +16,8 @@ from benchies.prompts import (
 
 
 DEFAULT_MODEL_ID = "black-forest-labs/FLUX.1-schnell"
+MEMORY_MODE_GPU = "gpu"
+MEMORY_MODE_CPU_OFFLOAD = "cpu-offload"
 
 
 def parse_csv_ints(raw_values: str) -> list[int]:
@@ -111,6 +113,17 @@ def write_metrics(metrics: list[BenchmarkMetrics], output_path: Path) -> Path:
     raise SystemExit("--metrics-output path must end in .csv or .jsonl")
 
 
+def load_benchmark_pipeline(model_id: str, device: str, dtype, memory_mode: str):
+    """Load FLUX with the requested benchmark memory placement strategy."""
+    from diffusers import FluxPipeline
+
+    pipeline = FluxPipeline.from_pretrained(model_id, torch_dtype=dtype)
+    if device == "cuda" and memory_mode == MEMORY_MODE_CPU_OFFLOAD:
+        pipeline.enable_model_cpu_offload()
+        return pipeline
+    return pipeline.to(device)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Define CLI flags for running FLUX Schnell benchmark generations."""
     parser = argparse.ArgumentParser(
@@ -175,6 +188,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=256,
         help="Maximum text sequence length passed into the pipeline.",
     )
+    parser.add_argument(
+        "--memory-mode",
+        choices=(MEMORY_MODE_GPU, MEMORY_MODE_CPU_OFFLOAD),
+        default=MEMORY_MODE_GPU,
+        help="Model placement strategy. Use gpu for A100 latency benchmarks; cpu-offload saves VRAM.",
+    )
     parser.add_argument("--model-id", default=DEFAULT_MODEL_ID, help="Hugging Face model id to load.")
     parser.add_argument(
         "--output-dir",
@@ -197,7 +216,6 @@ def main() -> None:
     from benchies.flux_schnell import (
         FluxSchnellConfig,
         generate_image,
-        load_pipeline,
         save_image,
         select_device,
         select_dtype,
@@ -219,9 +237,18 @@ def main() -> None:
     metrics_output = Path(args.metrics_output)
     device = select_device()
     dtype = select_dtype(device)
+    memory_mode = args.memory_mode
+    if device != "cuda" and memory_mode == MEMORY_MODE_CPU_OFFLOAD:
+        print(f"memory mode {MEMORY_MODE_CPU_OFFLOAD} requested on {device}; using direct {device} placement")
+        memory_mode = MEMORY_MODE_GPU
 
     load_start = perf_counter()
-    pipeline = load_pipeline(args.model_id, device=device, dtype=dtype)
+    pipeline = load_benchmark_pipeline(
+        args.model_id,
+        device=device,
+        dtype=dtype,
+        memory_mode=memory_mode,
+    )
     load_time_ms = (perf_counter() - load_start) * 1000
 
     metrics: list[BenchmarkMetrics] = []
@@ -278,6 +305,7 @@ def main() -> None:
                         model_id=args.model_id,
                         device=device,
                         dtype=str(dtype),
+                        memory_mode=memory_mode,
                         image_path=str(saved_path),
                     )
                 )

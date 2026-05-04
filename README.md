@@ -111,6 +111,7 @@ uv run python scripts/run_flux_benchmark.py \
   --limit 1 \
   --steps 4 \
   --runs 1 \
+  --memory-mode gpu \
   --output-dir outputs/smoke/images \
   --metrics-output outputs/smoke/metrics.csv
 ```
@@ -125,6 +126,7 @@ uv run python scripts/run_flux_benchmark.py \
   --one-per-category \
   --steps 1,2,4 \
   --runs 1 \
+  --memory-mode gpu \
   --output-dir outputs/one_per_category/images \
   --metrics-output outputs/one_per_category/metrics.csv
 ```
@@ -137,6 +139,7 @@ uv run python scripts/run_flux_benchmark.py \
   --category spatial_relationships \
   --steps 1,2,4 \
   --runs 3 \
+  --memory-mode gpu \
   --output-dir outputs/spatial_relationships/images \
   --metrics-output outputs/spatial_relationships/metrics.csv
 ```
@@ -149,6 +152,7 @@ uv run python scripts/run_flux_benchmark.py \
   --prompt-set curated \
   --steps 1,2,4 \
   --runs 5 \
+  --memory-mode gpu \
   --output-dir outputs/curated_full/images \
   --metrics-output outputs/curated_full/metrics.csv
 ```
@@ -160,6 +164,7 @@ uv run python scripts/run_flux_benchmark.py \
   --prompt-set primary \
   --steps 1,2,4 \
   --runs 5 \
+  --memory-mode gpu \
   --output-dir outputs/primary_full/images \
   --metrics-output outputs/primary_full/metrics.csv
 ```
@@ -171,14 +176,19 @@ uv run python scripts/run_flux_benchmark.py \
   --prompt-set control \
   --steps 1,2,4 \
   --runs 3 \
+  --memory-mode gpu \
   --output-dir outputs/control/images \
   --metrics-output outputs/control/metrics.csv
 ```
 
 The runner currently records generation latency, CUDA memory when available,
-image paths, seed, model, dtype, device, and resolution. Run the separate
-scoring pass below to populate `clip_score` and, when weights are available,
-`aesthetic_score` and `image_reward_score`.
+image paths, seed, model, dtype, device, resolution, and `memory_mode`.
+Benchmark runs default to full GPU residency with `--memory-mode gpu`, which is
+the correct mode for A100 latency measurements. Use `--memory-mode cpu-offload`
+only when VRAM is constrained; CPU offload can dominate latency and flatten
+step-count comparisons. Run the separate scoring pass below to populate
+`clip_score` and, when weights are available, `aesthetic_score` and
+`image_reward_score`.
 
 Score generated outputs with CLIP:
 
